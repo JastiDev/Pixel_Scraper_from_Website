@@ -51,15 +51,45 @@ async def check_pixels(url, results):
         page.on('request', handle_request)
 
         try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+            await page.goto(url, wait_until='domcontentloaded', timeout=120000)
             await page.wait_for_timeout(5000)
             clickable_elements = await page.query_selector_all('a, button, [onclick]')
+            print(clickable_elements)
+            # Handle <a> and <button> tags separately
             for elem in clickable_elements:
                 link = await elem.get_attribute('href') or await elem.get_attribute('onclick')
-                if link and ('https://ad.doubleclick.net/activity;register_conversion=1' in link or 'https://insight.adsrvr.org/track/' in link or "https://www.facebook.com/tr/" in link or "https://px.ads.linkedin.com/" in link):
+                if link:
+                    if ('https://ad.doubleclick.net/activity;register_conversion=1' in link or 
+                        'https://insight.adsrvr.org/track/' in link or 
+                        "https://www.facebook.com/tr/" in link or 
+                        "https://px.ads.linkedin.com/" in link):
+
+                        results['per_url'][url].append({
+                            'action': 'link',
+                            'element': link,
+                            'dcm_count': len(pixels['dcm']),
+                            'ttd_count': len(pixels['ttd']),
+                            'facebook_count': len(pixels['facebook']),
+                            'linkedin_count': len(pixels['linkedin']),
+                            'dcm_pixels': list(pixels['dcm']),
+                            'ttd_pixels': list(pixels['ttd']),
+                            'facebook_pixels': list(pixels['facebook']),
+                            'linkedin_pixels': list(pixels['linkedin'])
+                        })
+
+            # Separate handling for <img> tags
+            img_elements = await page.query_selector_all('img')
+            for img in img_elements:
+                img_src = await img.get_attribute('src')
+                if img_src and (
+                    'https://ad.doubleclick.net/activity;register_conversion=1' in img_src or
+                    'https://insight.adsrvr.org/track/' in img_src or
+                    "https://www.facebook.com/tr/" in img_src or
+                    "https://px.ads.linkedin.com/" in img_src
+                ):
                     results['per_url'][url].append({
-                        'action': 'link',
-                        'element': link,
+                        'action': 'img',
+                        'element': img_src,
                         'dcm_count': len(pixels['dcm']),
                         'ttd_count': len(pixels['ttd']),
                         'facebook_count': len(pixels['facebook']),
@@ -70,10 +100,11 @@ async def check_pixels(url, results):
                         'linkedin_pixels': list(pixels['linkedin'])
                     })
 
+
             await page.evaluate("""
                 window.scrollTo(0, document.body.scrollHeight);
             """)
-            await page.wait_for_timeout(3000)
+            await page.wait_for_timeout(60000)
 
         except Exception as e:
             print(f"Error: {e}")
