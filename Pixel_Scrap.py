@@ -52,7 +52,7 @@ async def check_pixels(url, results):
         page.on('request', handle_request)
 
         try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=500000)
+            await page.goto(url, wait_until='domcontentloaded', timeout=50000)
             await page.wait_for_timeout(5000)
 
             # Generalizing to all elements
@@ -85,7 +85,7 @@ async def check_pixels(url, results):
 
             # Scroll to the bottom to trigger additional pixel tracking (if needed)
             await page.evaluate("""window.scrollTo(0, document.body.scrollHeight);""")
-            await page.wait_for_timeout(100000)
+            await page.wait_for_timeout(30000)
 
         except Exception as e:
             print(f"Error: {e}")
